@@ -1,0 +1,37 @@
+﻿@page "/"
+
+<h3>AI Chatbot</h3>
+
+<div>
+    <input @bind="userQuestion" placeholder="Ask a question..." class="form-control" />
+    <button @onclick="SendMessage" class="btn btn-primary">Send</button>
+</div>
+
+@if (!string.IsNullOrEmpty(botResponse))
+{
+    <p><strong>Bot:</strong> @botResponse</p>
+}
+
+@code {
+    private string userQuestion = "";
+    private string botResponse = "Ask me anything!";
+    [Inject] private HttpClient Http { get; set; }
+
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(userQuestion)) return;
+
+        try
+        {
+            // Send request to API
+            var response = await Http.GetStringAsync($"https://localhost:5001/api/chatbot?question={Uri.EscapeDataString(userQuestion)}");
+            botResponse = response;
+        }
+        catch (Exception)
+        {
+            botResponse = "Error: Unable to connect to chatbot.";
+        }
+
+        userQuestion = ""; // Clear input
+    }
+}
