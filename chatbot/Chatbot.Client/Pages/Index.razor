@@ -24,7 +24,7 @@
         try
         {
             // Send request to API
-            var response = await Http.GetStringAsync($"https://localhost:5001/api/chatbot?question={Uri.EscapeDataString(userQuestion)}");
+            var response = await Http.GetStringAsync($"https://localhost:7064/api/chatbot?question={Uri.EscapeDataString(userQuestion)}");
             botResponse = response;
         }
         catch (Exception)
