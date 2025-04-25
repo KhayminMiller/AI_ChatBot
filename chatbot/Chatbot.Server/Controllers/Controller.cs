@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 [ApiController]
@@ -6,16 +7,34 @@ using System.Threading.Tasks;
 public class ChatbotController : ControllerBase
 {
     [HttpGet]
-    public ActionResult<string> GetChatResponse(string question)
+    public async Task StreamChat([FromQuery] string question)
     {
-        if (string.IsNullOrWhiteSpace(question))
+        Response.ContentType = "text/plain";
+
+        using var httpClient = new HttpClient();
+        var requestBody = new
         {
-            return BadRequest("Question cannot be empty.");
+            model = "llama3",
+            prompt = question,
+            stream = true
+        };
+
+        using var response = await httpClient.PostAsJsonAsync("http://localhost:11434/api/generate", requestBody);
+        using var stream = await response.Content.ReadAsStreamAsync();
+        using var reader = new StreamReader(stream);
+
+        while (!reader.EndOfStream)
+        {
+            var line = await reader.ReadLineAsync();
+            if (!string.IsNullOrWhiteSpace(line))
+            {
+                var chunk = JsonDocument.Parse(line).RootElement.GetProperty("response").GetString();
+                await Response.WriteAsync(chunk);
+                await Response.Body.FlushAsync();
+            }
         }
-        // Simulated chatbot response (Replace this with AI logic)
-        //Response.Headers.Add("Access-Control-Allow-Origin", "*");
-        return Ok($"You asked: {question}. Here’s a response!");
     }
+
 }
 
 
