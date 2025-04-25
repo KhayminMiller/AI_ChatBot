@@ -1,0 +1,81 @@
+﻿@page "/file-encryptor"
+@inject HttpClient Http
+
+<h3>File Encryption / Decryption</h3>
+
+<div class="space-y-4">
+    <InputFile OnChange="HandleFileChange" />
+    <input type="password" @bind="password" placeholder="Enter password" class="border p-1 rounded" />
+
+    <select @bind="mode" class="border p-1 rounded">
+        <option value="encrypt">Encrypt</option>
+        <option value="decrypt">Decrypt</option>
+    </select>
+
+    <button @onclick="ProcessFile" class="bg-blue-500 text-white px-4 py-1 rounded">Submit</button>
+
+    @if (!string.IsNullOrEmpty(statusMessage))
+    {
+        <p>@statusMessage</p>
+    }
+
+    @if (downloadUrl != null)
+    {
+        <a href="@downloadUrl" download="@downloadFileName" class="text-blue-600">Download Processed File</a>
+    }
+</div>
+
+@code {
+    IBrowserFile selectedFile;
+    string password;
+    string mode = "encrypt";
+    string statusMessage;
+    string downloadUrl;
+    string downloadFileName;
+
+    private void HandleFileChange(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+        statusMessage = string.Empty;
+        downloadUrl = null;
+    }
+
+    private async Task ProcessFile()
+    {
+        if (selectedFile == null || string.IsNullOrWhiteSpace(password))
+        {
+            statusMessage = "Please select a file and enter a password.";
+            return;
+        }
+
+        try
+        {
+            var content = new MultipartFormDataContent();
+            var fileContent = new StreamContent(selectedFile.OpenReadStream(maxAllowedSize: 1024 * 1024 * 15));
+            content.Add(fileContent, "file", selectedFile.Name);
+            content.Add(new StringContent(password), "password");
+            content.Add(new StringContent(mode), "mode");
+
+            var response = await Http.PostAsync("https://localhost:7064/api/filecrypto/process", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var fileBytes = await response.Content.ReadAsByteArrayAsync();
+                var base64 = Convert.ToBase64String(fileBytes);
+                var fileName = response.Content.Headers.ContentDisposition?.FileName?.Trim('\"') ?? "processed.dat";
+
+                downloadFileName = fileName;
+                downloadUrl = $"data:application/octet-stream;base64,{base64}";
+                statusMessage = "File processed successfully!";
+            }
+            else
+            {
+                statusMessage = "Error: Could not process file.";
+            }
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error: {ex.Message}";
+        }
+    }
+}
