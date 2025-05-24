@@ -14,7 +14,17 @@ REM ========================================
 REM Preload model into memory
 REM ========================================
 echo Preloading model into memory...
-curl -s http://localhost:11434/api/generate -d "{\"model\": \"llama3:8b-q4_K_M\", \"prompt\": \"Hello\", \"stream\": false}" >nul
+curl -s http://localhost:11434/api/generate -d "{\"model\": \"mistral:7b-instruct\", \"prompt\": \"Hello\", \"stream\": false}" >nul
+
+
+REM ========================================
+REM Start Azurite in background
+REM ========================================
+echo Starting Azurite...
+start "Azurite" cmd /k "npx azurite --silent --location ./azurite_data"
+
+REM Wait a few seconds for Azurite to initialize
+timeout /t 3 >nul
 
 REM ========================================
 REM Start ChatBot.Server
@@ -39,6 +49,7 @@ echo ======================================
 pause >nul
 
 taskkill /FI "WINDOWTITLE eq Ollama" /T /F
+taskkill /FI "WINDOWTITLE eq Azurite" /T /F
 taskkill /FI "WINDOWTITLE eq ChatBot.Server" /T /F
 taskkill /FI "WINDOWTITLE eq ChatBot.Client" /T /F
 

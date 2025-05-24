@@ -1,0 +1,108 @@
+﻿@page "/ocr"
+@inject HttpClient Http
+
+<h3>OCR Image Upload</h3>
+
+<InputFile OnChange="HandleFileSelected" accept="image/*" />
+<p>@statusMessage</p>
+
+@if (!string.IsNullOrEmpty(extractedText))
+{
+    <h4>Extracted Text</h4>
+    <pre>@extractedText</pre>
+}
+
+<hr />
+<h3>Stored OCR Files</h3>
+
+@if (ocrFiles == null)
+{
+    <p>Loading...</p>
+}
+else if (!ocrFiles.Any())
+{
+    <p>No files found.</p>
+}
+else
+{
+    <ul>
+        @foreach (var file in ocrFiles)
+        {
+            <li>
+                <button @onclick="() => LoadExtractedText(file.Id)">
+                    📄 @file.FileName (@file.Timestamp.ToLocalTime().ToString("g"))
+                </button>
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    private IBrowserFile selectedFile;
+    private string statusMessage;
+    private string extractedText;
+
+    private List<OcrListItem> ocrFiles;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadFileList();
+    }
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+        if (selectedFile != null)
+        {
+            var content = new MultipartFormDataContent();
+            var stream = selectedFile.OpenReadStream(10_000_000); // 10MB limit
+            content.Add(new StreamContent(stream), "image", selectedFile.Name);
+
+            try
+            {
+                var response = await Http.PostAsync("https://localhost:7064/api/ocr/extract", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<OcrResult>();
+                    extractedText = result?.Text ?? "(no text found)";
+                    statusMessage = "✅ Text extracted and saved.";
+                    await LoadFileList();
+                }
+                else
+                {
+                    statusMessage = $"❌ Failed: {response.StatusCode}";
+                }
+            }
+            catch (Exception ex)
+            {
+                statusMessage = $"⚠️ Error: {ex.Message}";
+            }
+        }
+    }
+
+    private async Task LoadFileList()
+    {
+        ocrFiles = await Http.GetFromJsonAsync<List<OcrListItem>>("https://localhost:7064/api/ocr/list");
+    }
+
+    private async Task LoadExtractedText(int id)
+    {
+        var result = await Http.GetFromJsonAsync<OcrResult>($"https://localhost:7064/api/ocr/{id}");
+        extractedText = result?.Text ?? "(no text found)";
+    }
+
+    public class OcrListItem
+    {
+        public int Id { get; set; }
+        public string FileName { get; set; }
+        public DateTime Timestamp { get; set; }
+    }
+
+    public class OcrResult
+    {
+        public string FileName { get; set; }
+        public string Text { get; set; }
+        public DateTime Timestamp { get; set; }
+    }
+}
