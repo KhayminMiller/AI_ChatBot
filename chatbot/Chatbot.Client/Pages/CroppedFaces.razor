@@ -1,0 +1,129 @@
+﻿@page "/cropped-faces"
+@inject HttpClient Http
+
+<h3 class="text-xl font-bold mb-4">Filtered Detected Faces</h3>
+
+<div class="mb-4 space-y-2">
+    <input @bind="filename" class="border p-2 w-full md:w-1/2" placeholder="Filter by filename..." />
+    <input type="date" @bind="startDate" class="border p-2 w-full md:w-1/2" />
+    <input type="date" @bind="endDate" class="border p-2 w-full md:w-1/2" />
+    <input type="number" @bind="sessionId" class="border p-2 w-full md:w-1/2" placeholder="Session ID (optional)" />
+    <button @onclick="ApplyFilters" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+        Apply Filters
+    </button>
+    <button @onclick="ResetFilters" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">
+        Reset Filters
+    </button>
+</div>
+
+@if (faces == null)
+{
+    <p>Loading...</p>
+}
+else if (faces.Count == 0)
+{
+    <p>No faces found for the selected filters.</p>
+}
+else
+{
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        @foreach (var face in faces)
+        {
+            <div class="p-2 border rounded-lg shadow">
+                <img src="data:image/png;base64,@face.Base64Image" alt="Face" class="w-full h-auto rounded" />
+                <p class="mt-2 text-sm text-gray-600">@face.CroppedFileName</p>
+                <p class="text-xs text-gray-500">@face.FileName</p>
+                <p class="text-xs text-gray-500">@face.Timestamp?.ToString("g")</p>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<DetectedFaceDto> faces = new();
+
+    private string? filename;
+    private DateTime? startDate;
+    private DateTime? endDate;
+    private int? sessionId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ApplyFilters(); // Load all faces on page load
+    }
+
+    private async Task ApplyFilters()
+    {
+        var query = "api/FaceDetection/upload/faces?";
+
+        if (!string.IsNullOrWhiteSpace(filename))
+            query += $"filename={Uri.EscapeDataString(filename)}&";
+
+        if (startDate.HasValue)
+            query += $"startDate={startDate.Value:yyyy-MM-dd}&";
+
+        if (endDate.HasValue)
+            query += $"endDate={endDate.Value:yyyy-MM-dd}&";
+
+        if (sessionId.HasValue)
+            query += $"sessionId={sessionId.Value}&";
+
+        query = query.TrimEnd('&', '?');
+
+        Console.WriteLine("➡️ Querying: " + query);
+
+        try
+        {
+            // Try to get JSON
+            faces = await Http.GetFromJsonAsync<List<DetectedFaceDto>>(query);
+        }
+        catch (HttpRequestException httpEx)
+        {
+            Console.Error.WriteLine($"❌ HTTP error: {httpEx.Message}");
+        }
+        catch (System.Text.Json.JsonException jsonEx)
+        {
+            Console.Error.WriteLine($"❌ JSON error: {jsonEx.Message}");
+
+            // 🔥 Get the raw response as plain text
+            try
+            {
+                var raw = await Http.GetStringAsync(query);
+                Console.Error.WriteLine("🧾 Raw response:");
+                Console.Error.WriteLine(raw);
+            }
+            catch (Exception innerEx)
+            {
+                Console.Error.WriteLine($"❌ Failed to fetch raw response: {innerEx.Message}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"❌ General error: {ex.Message}");
+        }
+    }
+
+
+    private async Task ResetFilters()
+    {
+        filename = null;
+        startDate = null;
+        endDate = null;
+        sessionId = null;
+
+        await ApplyFilters();
+    }
+
+    public class DetectedFaceDto
+    {
+        public int Id { get; set; }
+        public string CroppedFileName { get; set; }
+        public int X { get; set; }
+        public int Y { get; set; }
+        public int Width { get; set; }
+        public int Height { get; set; }
+        public string? FileName { get; set; }
+        public DateTime? Timestamp { get; set; }
+        public string Base64Image { get; set; }
+    }
+}

@@ -1,0 +1,68 @@
+﻿@page "/decrypt"
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<h3>Available Encrypted Files</h3>
+
+@if (fileNames == null)
+{
+    <p>Loading files...</p>
+}
+else if (!fileNames.Any())
+{
+    <p>No files found.</p>
+}
+else
+{
+    <ul>
+        @foreach (var name in fileNames)
+        {
+            <li>
+                @name
+                <button @onclick="() => DownloadAndDecrypt(name)">Download & Decrypt</button>
+            </li>
+        }
+    </ul>
+}
+
+<p>@statusMessage</p>
+
+@code {
+    private List<string> fileNames;
+    private string statusMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            fileNames = await Http.GetFromJsonAsync<List<string>>("api/files/list");
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"❌ Error: {ex.Message}";
+        }
+    }
+
+    async Task DownloadAndDecrypt(string fileName)
+    {
+        try
+        {
+            var response = await Http.GetAsync($"api/files/decrypt/{fileName}");
+            if (response.IsSuccessStatusCode)
+            {
+                var stream = await response.Content.ReadAsStreamAsync();
+                using var streamRef = new DotNetStreamReference(stream);
+                await JS.InvokeVoidAsync("downloadFile", fileName, streamRef);
+                statusMessage = $"✅ {fileName} decrypted and downloaded.";
+            }
+            else
+            {
+                statusMessage = $"❌ Failed to download {fileName}: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"❌ Exception: {ex.Message}";
+        }
+    }
+}

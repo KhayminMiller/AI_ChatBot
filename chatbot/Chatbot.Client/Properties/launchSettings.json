@@ -8,8 +8,12 @@
       "inspectUri": "{wsProtocol}://{url.hostname}:{url.port}/_framework/debug/ws-proxy?browser={browserInspectUri}",
       "applicationUrl": "http://localhost:5028",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ConnectionStrings__AzureBlobStorage": "UseDevelopmentStorage=true",
+        "ConnectionStrings__DefaultConnection": "Data Source=ocrdata.db",
+        "AzureStorage:ContainerName": "faces"
       }
+
     },
     "https": {
       "commandName": "Project",
@@ -18,8 +22,12 @@
       "inspectUri": "{wsProtocol}://{url.hostname}:{url.port}/_framework/debug/ws-proxy?browser={browserInspectUri}",
       "applicationUrl": "https://localhost:7178;http://localhost:5028",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ConnectionStrings__AzureBlobStorage": "UseDevelopmentStorage=true",
+        "ConnectionStrings__DefaultConnection": "Data Source=ocrdata.db",
+        "AzureStorage:ContainerName": "faces"
       }
+
     }
   }
 }

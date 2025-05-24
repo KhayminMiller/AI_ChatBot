@@ -1,13 +1,15 @@
-﻿{
+{
   "$schema": "https://json.schemastore.org/launchsettings.json",
   "profiles": {
     "http": {
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": false,
-      "applicationUrl": "https://localhost:7064;http://localhost:5064",
+      "applicationUrl": "http://localhost:5064",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ConnectionStrings__AzureBlobStorage": "UseDevelopmentStorage=true",
+        "ConnectionStrings__DefaultConnection": "Data Source=ocrdata.db"
       }
     },
     "https": {
@@ -16,7 +18,9 @@
       "launchBrowser": false,
       "applicationUrl": "https://localhost:7064;http://localhost:5064",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ConnectionStrings__AzureBlobStorage": "UseDevelopmentStorage=true",
+        "ConnectionStrings__DefaultConnection": "Data Source=ocrdata.db"
       }
     }
   }
